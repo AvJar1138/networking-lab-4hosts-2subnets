@@ -1,0 +1,119 @@
+name: multi-subnet-lab
+
+topology:
+  nodes:
+
+    # --- Router ---
+    router:
+      kind: linux
+      image: frrouting/frr:latest
+      labels:
+        graph-icon: router
+        graph-level: 1
+      exec:
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip addr replace 192.168.10.1/24 dev eth1
+        - ip addr replace 192.168.20.1/24 dev eth2
+        - sysctl -w net.ipv4.ip_forward=1
+
+
+    # --- Switch A ---
+    switch-a:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: switch
+        graph-level: 2
+      exec:
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set eth3 up
+        - ip link add br0 type bridge
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth3 master br0
+        - ip link set br0 up
+
+
+    # --- Switch B ---
+    switch-b:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: switch
+        graph-level: 2
+      exec:
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set eth3 up
+        - ip link add br0 type bridge
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth3 master br0
+        - ip link set br0 up
+
+
+    # --- Subnet A Host 1 ---
+    host-a1:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: host
+        graph-level: 3
+      exec:
+        - ip link set eth1 up
+        - ip addr add 192.168.10.2/24 dev eth1
+        - ip route replace default via 192.168.10.1 dev eth1
+
+
+    # --- Subnet A Host 2 ---
+    host-a2:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: host
+        graph-level: 3
+      exec:
+        - ip link set eth1 up
+        - ip addr add 192.168.10.3/24 dev eth1
+        - ip route replace default via 192.168.10.1 dev eth1
+
+
+    # --- Subnet B Host 1 ---
+    host-b1:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: host
+        graph-level: 3
+      exec:
+        - ip link set eth1 up
+        - ip addr add 192.168.20.2/24 dev eth1
+        - ip route replace default via 192.168.20.1 dev eth1
+
+
+    # --- Subnet B Host 2 ---
+    host-b2:
+      kind: linux
+      image: alpine:latest
+      labels:
+        graph-icon: host
+        graph-level: 3
+      exec:
+        - ip link set eth1 up
+        - ip addr add 192.168.20.3/24 dev eth1
+        - ip route replace default via 192.168.20.1 dev eth1
+
+
+  links:
+
+    # --- Subnet A ---
+    - endpoints: ["host-a1:eth1", "switch-a:eth1"]
+    - endpoints: ["host-a2:eth1", "switch-a:eth2"]
+    - endpoints: ["router:eth1", "switch-a:eth3"]
+
+    # --- Subnet B ---
+    - endpoints: ["host-b1:eth1", "switch-b:eth1"]
+    - endpoints: ["host-b2:eth1", "switch-b:eth2"]
+    - endpoints: ["router:eth2", "switch-b:eth3"]
